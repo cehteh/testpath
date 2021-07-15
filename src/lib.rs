@@ -1,4 +1,24 @@
-//! Companinon crate to 'bintest' and 'testcall', implements fixtures and assertions on paths
+//! Companinon crate to ‘bintest' and 'testcall’, implements facilities for running tests in
+//! directories.
+//!
+//!
+//! # Description
+//! Allows creating of (temporary) test directories, optionally with a custom callback for cleanup.
+//! Populating these with content for testing and provide assertion to validate the content.
+//!
+//!
+//! # Example
+//!
+//! ```ignore
+//! fn test_something() {
+//!     let tmpdir = TempDir::new().expect("TempDir created");
+//!     tmpdir.create_file("path/to/testfile", "Hello File!".as_bytes());
+//!     tmpdir
+//!         .sub_path("path/to")
+//!         .assert_exists("testfile")
+//!         .assert_is_file("testfile");
+//! }
+//! ```
 //!
 //!
 //! # TestPath
@@ -120,8 +140,25 @@ pub trait Fixtures: TestPath {
         self
     }
 
-    /// Install something (from outside) into the testpath.
+    /// Install something (from outside) into 'self'.
     /// 'from' must be some existing directory or a file, symlinks are resolved.
+    ///
+    /// Following semantics apply when `from` is a *file*:
+    ///
+    /// | self is     | What is done                                                                    |
+    /// |-------------|---------------------------------------------------------------------------------|
+    /// | nonexistant | `self` last component is the new filename, parent dirs are created              |
+    /// | dir         | `from` is copied into `self`, but won't overwrite an existing file              |
+    /// | file        | `self` gets overwritten                                                         |
+    ///
+    /// Following semantics apply when `from` is a *directory*:
+    ///
+    /// | self is     | What is done                                                                    |
+    /// |-------------|---------------------------------------------------------------------------------|
+    /// | nonexistant | `self` including parents are created, the content of `from` is copied into that |
+    /// | dir         | the content of `from` is copied into `self`                                     |
+    /// | file        | *ERROR*                                                                         |
+    ///
     #[track_caller]
     fn install_from<P>(&self, from: P) -> &Self
     where
@@ -277,7 +314,7 @@ pub trait PathAssertions: TestPath {
         self
     }
 
-    /// Assert that the two paths contain the same content (directories are
+    /// Assert that self contains exactly the same content than another path (directories are
     /// recursed).
     #[track_caller]
     fn assert_equal<M>(&self, with: &M) -> &Self
@@ -296,7 +333,8 @@ pub trait PathAssertions: TestPath {
         self
     }
 
-    /// Assert that the two paths are structurally equivalent (contain the same files). File contents are not compared.
+    /// Assert that self is is structurally equivalent to another path (contain the same
+    /// files). File contents are not compared.
     #[track_caller]
     fn assert_structure<M>(&self, with: &M) -> &Self
     where
@@ -314,8 +352,8 @@ pub trait PathAssertions: TestPath {
         self
     }
 
-    /// Assert that the two paths contain the same content only for files that exist on both sides.
-    /// Surplus files on either side are ignored.
+    /// Assert that self contains the same content than another path for files that exist on
+    /// both sides. Surplus files on either side are ignored.
     #[track_caller]
     fn assert_existing<M>(&self, with: &M) -> &Self
     where
