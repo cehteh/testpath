@@ -723,6 +723,14 @@ mod test_public_interface {
 
     #[test]
     #[should_panic]
+    fn create_dir_fail() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        println!("TempDir path: {:?}", tmpdir.path());
+        tmpdir.assert_is_dir("doesnotexist");
+    }
+
+    #[test]
+    #[should_panic]
     fn install_from_nonexistant() {
         let tmpdir = TempDir::new().expect("TempDir created");
         tmpdir.install_from("doesnotexist");
