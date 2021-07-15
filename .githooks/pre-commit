@@ -1,0 +1,31 @@
+#!/bin/bash
+# install this by: cp -f .githooks/pre-commit .git/hooks/pre-commit
+
+KEEP_TESTS=5
+WORKTREE_DIR="$PWD"
+TIMEOUT_SECS=10
+MEMORY_KB=16777216
+TEST_PREFIX=".tests-"
+
+if ! cmp .githooks/pre-commit .git/hooks/pre-commit; then
+    echo ".githooks/pre-commit is out of date, please reinstall it"
+fi
+
+cd "$WORKTREE_DIR"
+find -name "${TEST_PREFIX}*" -type d | sort -n | head -n -$KEEP_TESTS | xargs -r rm -r
+
+export GIT_AUTHOR_DATE="${GIT_AUTHOR_DATE:-$(awk 'BEGIN {srand(); print srand()}')}"
+test_dir="${TEST_PREFIX}${GIT_AUTHOR_DATE% +*}"
+
+last=$(find -name "${TEST_PREFIX}*" -type d | sort -rn | head -n 1)
+if [[ "$last" ]]; then
+    cp -rl "$last/" "$test_dir"
+fi
+
+git archive "$(git write-tree)" --prefix="$test_dir/" | tar xf -
+cd "$test_dir"
+
+ulimit -S -v $MEMORY_KB -t $TIMEOUT_SECS
+# install test with ln -s .branchlocal/*.sh .test_runner
+sh "$WORKTREE_DIR/.test_runner" 2>&1 | tee test.log
+exit $?

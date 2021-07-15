@@ -1,6 +1,6 @@
 [package]
 name = "testpath"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2018"
 description = "companinon crate to bintest/testcall, augments Paths for testing"
 license = "MIT OR Apache-2.0"
@@ -8,3 +8,8 @@ repository = "https://github.com/cehteh/testpath.git"
 keywords = ["testing"]
 
 [dependencies]
+tempfile = "3.2"
+regex = "1"
+
+[badges]
+maintenance = { status = "actively-developed" }
