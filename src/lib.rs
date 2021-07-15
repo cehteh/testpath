@@ -194,6 +194,17 @@ pub trait Fixtures: TestPath {
 
         self
     }
+
+    /// Delete an element from a testpath. Directories are deleted as well.  This trait
+    /// functions defaults to `unimplemented` because it is deemed to be dangerous. Only the
+    /// trait implementations which create an disposable directory implement it.
+    #[track_caller]
+    fn delete<N>(&self, _name: &N) -> &Self
+    where
+        N: AsRef<Path> + ?Sized,
+    {
+        unimplemented!()
+    }
 }
 
 /// Assertions on content of a TestPath
@@ -396,7 +407,18 @@ impl TestPath for TempDir {
 }
 
 impl Fixtures for TempDir {
-    //TODO: implement rm
+    fn delete<N>(&self, name: &N) -> &Self
+    where
+        N: AsRef<Path> + ?Sized,
+    {
+        let name = PathBuf::from(self.path()).join(name);
+        if name.is_dir() {
+            fs::remove_dir_all(name).expect("directory deleted");
+        } else {
+            fs::remove_file(name).expect("file deleted");
+        }
+        self
+    }
 }
 impl PathAssertions for TempDir {}
 
@@ -420,7 +442,18 @@ impl TestPath for TempDirCleanup {
 }
 
 impl Fixtures for TempDirCleanup {
-    //TODO: implement rm
+    fn delete<N>(&self, name: &N) -> &Self
+    where
+        N: AsRef<Path> + ?Sized,
+    {
+        let name = PathBuf::from(self.path()).join(name);
+        if name.is_dir() {
+            fs::remove_dir_all(name).expect("directory deleted");
+        } else {
+            fs::remove_file(name).expect("file deleted");
+        }
+        self
+    }
 }
 impl PathAssertions for TempDirCleanup {}
 
@@ -793,5 +826,30 @@ mod test_public_interface {
         let tmpdir = TempDir::new().expect("TempDir created");
         tmpdir.create_file("src", "Hello File!".as_bytes());
         tmpdir.sub_path("src").install_from("src");
+    }
+
+    #[test]
+    fn delete_file_in_tempdir() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        tmpdir.delete("testfile");
+        tmpdir.assert_available("testfile");
+    }
+
+    #[test]
+    fn delete_dir_in_tempdir() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_dir("test/dir");
+        tmpdir.delete("test");
+        tmpdir.assert_available("test");
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_in_path() {
+        let underlay = TempDir::new().expect("TempDir created");
+        let tmpdir = PathBuf::from(underlay.path());
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        tmpdir.delete("testfile");
     }
 }
