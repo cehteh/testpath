@@ -9,7 +9,9 @@
 //!
 //! # Example
 //!
-//! ```ignore
+//! ```
+//! # use tempfile::TempDir;
+//! # use testpath::*;
 //! fn test_something() {
 //!     let tmpdir = TempDir::new().expect("TempDir created");
 //!     tmpdir.create_file("path/to/testfile", "Hello File!".as_bytes());
@@ -19,28 +21,6 @@
 //!         .assert_is_file("testfile");
 //! }
 //! ```
-//!
-//!
-//! # TestPath
-//!
-//! A trait that augements Path for software testing. There are special implementations for
-//! 'tempfile::TempDir' which creates temporary directories that get deletes when going out of
-//! scope and TempDirCleanup which adds an custom cleanup callback to TempDir.
-//!
-//!
-//! # SubPath
-//!
-//! SubPaths refer to pathnames within a TestPath and may not outlive the parent TestPath.
-//!
-//!
-//! ## Fixtures
-//!
-//! Allow to populate a TestPath with content for testing.
-//!
-//!
-//! ## PathAssertions
-//!
-//! Check and compare components of a TestPath for validty.
 //!
 //!
 //! # Panics vs. Results
