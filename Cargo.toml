@@ -10,6 +10,7 @@ keywords = ["testing"]
 [dependencies]
 tempfile = "3.2"
 regex = "1"
+testcall = "0.4"
 
 [badges]
 maintenance = { status = "actively-developed" }
