@@ -37,6 +37,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use testcall::regex::*;
+use path_absolutize::*;
 
 /// Trait for test directoy objects
 pub trait TestPath {
@@ -491,21 +492,7 @@ trait PathNormalize {
 
 impl PathNormalize for Path {
     fn normalize(&self) -> PathBuf {
-        use std::path::Component::*;
-        let mut normalized = PathBuf::new();
-        for component in self.components() {
-            match component {
-                Prefix(_) | RootDir | Normal(_) => normalized.push(component),
-                CurDir => (),
-                ParentDir => {
-                    if let Some(_) = normalized.parent() {
-                        normalized.pop();
-                    }
-                }
-            }
-            normalized = normalized.canonicalize().unwrap_or(normalized);
-        }
-        normalized
+        self.absolutize().expect("absolute path").into_owned()
     }
 }
 
@@ -620,14 +607,10 @@ mod test_internals {
 
     #[test]
     fn path_normalize() {
-        assert_eq!(Path::new(""), Path::new(".").normalize());
-        assert_eq!(Path::new(""), Path::new("./").normalize());
-        assert_eq!(Path::new(""), Path::new("./.").normalize());
         assert_eq!(Path::new("/foo/bar"), Path::new("/foo/bar").normalize());
         assert_eq!(Path::new("/foo"), Path::new("/foo/bar/..").normalize());
         assert_eq!(Path::new("/foo/bar"), Path::new("/foo/./bar/.").normalize());
         assert_ne!(Path::new("/foo/bar"), Path::new("/foo/bar/..").normalize());
-        assert_eq!(Path::new("foo/bar"), Path::new("./foo/bar").normalize());
     }
 
     #[test]

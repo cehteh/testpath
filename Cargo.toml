@@ -1,6 +1,6 @@
 [package]
 name = "testpath"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2018"
 description = "companinon crate to bintest/testcall, augments Paths for testing"
 license = "MIT OR Apache-2.0"
@@ -11,6 +11,7 @@ keywords = ["testing"]
 tempfile = "3.2"
 regex = "1"
 testcall = "0.4"
+path-absolutize = "3.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
