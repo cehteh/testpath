@@ -30,7 +30,9 @@
 //! reported.
 //!
 use std::fs;
+use std::fs::File;
 use std::io;
+use std::io::{BufReader, Read};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
@@ -327,6 +329,54 @@ pub trait PathAssertions: TestPath {
 
         self
     }
+
+    /// Assert that a file content matches the given regex in utf8.
+    #[track_caller]
+    fn assert_utf8(&self, regex: &str) -> &Self {
+        let mut data = String::new();
+        File::open(self.path())
+            .expect("readable file")
+            .read_to_string(&mut data)
+            .expect("all data read");
+
+        let (ok, bytes) = regex_match_utf8(data.as_bytes(), regex);
+        assert!(
+            ok,
+            "{:?} does not match {}\ngot: {}",
+            self.path(), regex, bytes
+        );
+        self
+    }
+
+    /// Assert that a file content matches the given regex in bytes.
+    #[track_caller]
+    fn assert_bytes(&self, regex: &str) -> &Self {
+        let mut data = Vec::new();
+        File::open(self.path())
+            .expect("readable file")
+            .read_to_end(&mut data)
+            .expect("all data read");
+
+        let (ok, bytes) = regex_match_bytes(data.as_slice(), regex);
+        assert!(
+            ok,
+            "{:?} does not match:{}\ngot {}",
+            self.path(), regex, bytes
+        );
+        self
+    }
+
+    /// Return all captures from a regex in utf8.
+    #[track_caller]
+    fn captures_utf8(&self, regex: &str) -> Captured {
+        let mut data = String::new();
+        File::open(self.path())
+            .expect("readable file")
+            .read_to_string(&mut data)
+            .expect("all data read");
+
+        captures_utf8(data.as_bytes(), regex)
+    }
 }
 
 /// A Path that lives within a TestPath and must not outlive it.
@@ -511,9 +561,6 @@ fn compare_all(a: &Path, b: &Path, compare_policy: ComparePolicy) {
 }
 
 fn compare_file(a: &Path, b: &Path) {
-    use std::fs::File;
-    use std::io::{BufReader, Read};
-
     let a_reader = BufReader::with_capacity(65536, File::open(a).expect("a is readable"));
     let b_reader = BufReader::with_capacity(65536, File::open(b).expect("b is readable"));
     for (index, bytes) in a_reader.bytes().zip(b_reader.bytes()).enumerate() {
@@ -820,5 +867,48 @@ mod test_public_interface {
         let tmpdir = PathBuf::from(underlay.path());
         tmpdir.create_file("testfile", "Hello File!".as_bytes());
         tmpdir.delete("testfile");
+    }
+
+    #[test]
+    fn assert_utf8() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        tmpdir
+            .sub_path("testfile")
+            .assert_utf8("Hello File!");
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_utf8_fail() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", b"\xfaFile!");
+        tmpdir
+            .sub_path("testfile")
+            .assert_utf8("Hello File!");
+    }
+
+    #[test]
+    fn assert_bytes() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        tmpdir
+            .sub_path("testfile")
+            .assert_bytes("Hello File!");
+    }
+
+    #[test]
+    fn captures_utf8() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        let captures = tmpdir
+            .sub_path("testfile")
+            .captures_utf8("(?P<first>[^ ]*) (?P<second>[^ ]*)");
+
+        assert_eq!(&captures[0], "Hello File!");
+        assert_eq!(&captures[1], "Hello");
+        assert_eq!(&captures[2], "File!");
+        assert_eq!(&captures["first"], "Hello");
+        assert_eq!(&captures["second"], "File!");
     }
 }
