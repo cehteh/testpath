@@ -1,4 +1,4 @@
-//! Companinon crate to ‘bintest' and 'testcall’, implements facilities for running tests in
+//! Companion crate to ‘bintest' and 'testcall’, implements facilities for running tests in
 //! directories.
 //!
 //!
@@ -17,8 +17,7 @@
 //!     tmpdir.create_file("path/to/testfile", "Hello File!".as_bytes());
 //!     tmpdir
 //!         .sub_path("path/to/testfile")
-//!         .assert_exists()
-//!         .assert_is_file();
+//!         .assert_utf8("Hello File!");
 //! }
 //! ```
 //!
@@ -863,7 +862,17 @@ mod test_public_interface {
 
     #[test]
     #[should_panic]
-    fn assert_utf8_fail() {
+    fn assert_utf8_nomatch() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        tmpdir
+            .sub_path("testfile")
+            .assert_utf8("Hello World");
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_utf8_not_utf8() {
         let tmpdir = TempDir::new().expect("TempDir created");
         tmpdir.create_file("testfile", b"\xfaFile!");
         tmpdir
@@ -878,6 +887,16 @@ mod test_public_interface {
         tmpdir
             .sub_path("testfile")
             .assert_bytes("Hello File!");
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_bytes_nomatch() {
+        let tmpdir = TempDir::new().expect("TempDir created");
+        tmpdir.create_file("testfile", "Hello File!".as_bytes());
+        tmpdir
+            .sub_path("testfile")
+            .assert_bytes("Hello World!");
     }
 
     #[test]

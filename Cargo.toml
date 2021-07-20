@@ -1,6 +1,6 @@
 [package]
 name = "testpath"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
 description = "companinon crate to bintest/testcall, augments Paths for testing"
 license = "MIT OR Apache-2.0"

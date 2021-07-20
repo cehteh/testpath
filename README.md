@@ -14,12 +14,9 @@ fn test_something() {
     let tmpdir = TempDir::new().expect("TempDir created");
     tmpdir.create_file("path/to/testfile", "Hello File!".as_bytes());
     tmpdir
-        .sub_path("path/to")
-        .assert_exists("testfile")
-        .assert_is_file("testfile")
-     ;
+        .sub_path("path/to/testfile")
+        .assert_utf8("Hello File!");
 }
-
 ```
 
 # Future Plans
